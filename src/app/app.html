@@ -1,0 +1,90 @@
+<header class="navbar">
+  <div class="logo">URBAN <span>VIBE</span></div>
+  <nav class="nav-links">
+    <button (click)="cargarPrendasEjemplo()" class="btn-demo">+ Cargar Productos Demo</button>
+    <button (click)="mostrarCarrito = !mostrarCarrito" class="btn-carrito">
+      🛒 Carrito ({{ carrito.length }})
+    </button>
+  </nav>
+</header>
+
+<main class="container">
+  <!-- Banner principal -->
+  <section class="hero">
+    <h1>ESTILO URBANO & OVERSIZE</h1>
+    <p>Encuentra tu outfit casual, deportivo o la mejor ropa oversize para él y ella.</p>
+  </section>
+
+  <!-- Catálogo de productos -->
+  <section class="catalogo">
+    <h2>Catálogo de Prendas</h2>
+
+    <div class="grid-productos">
+      @for (item of productos$ | async; track item.id) {
+        <div class="card-producto">
+          <span class="badge">{{ item.estilo }}</span>
+          <img [src]="item.imagenUrl" [alt]="item.nombre" class="img-producto">
+
+          <div class="info-producto">
+            <h3>{{ item.nombre }}</h3>
+            <p class="categoria">{{ item.categoria }}</p>
+            <p class="descripcion">{{ item.descripcion }}</p>
+            <p class="precio">{{ item.precio | currency:'USD' }}</p>
+
+            <!-- Selección de Talla -->
+            <div class="seccion-tallas">
+              <label>Talla:</label>
+              <select [(ngModel)]="tallasSeleccionadas[item.id || '']">
+                @for (talla of item.tallas; track talla) {
+                  <option [value]="talla">{{ talla }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="acciones">
+              <button (click)="agregarAlCarrito(item)" class="btn-comprar">Añadir al Carrito</button>
+              <button (click)="eliminarPrenda(item.id)" class="btn-eliminar" title="Eliminar de Firestore">🗑️</button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Sugerencias -->
+  <section class="sugerencias">
+    💡 <strong>Sugerencias de Estilo:</strong> Combina nuestras prendas <em>Oversize</em> con accesorios minimalistas para obtener un look urbano completo.
+  </section>
+</main>
+
+<!-- Carrito Lateral -->
+@if (mostrarCarrito) {
+  <div class="carrito-overlay" (click)="mostrarCarrito = false"></div>
+  <div class="carrito-panel">
+    <h2>Tu Carrito de Compras</h2>
+    <button class="btn-cerrar" (click)="mostrarCarrito = false">✖</button>
+
+    @if (carrito.length === 0) {
+      <p class="empty-msg">Tu carrito está vacío.</p>
+    } @else {
+      <div class="items-carrito">
+        @for (item of carrito; track $index) {
+          <div class="item-carrito">
+            <div>
+              <strong>{{ item.producto.nombre }}</strong>
+              <p>Talla: {{ item.tallaSeleccionada }} | Cant: {{ item.cantidad }}</p>
+              <p class="precio-item">{{ (item.producto.precio * item.cantidad) | currency:'USD' }}</p>
+            </div>
+            <button (click)="eliminarDelCarrito($index)" class="btn-borrar-item">Eliminar</button>
+          </div>
+        }
+      </div>
+
+      <div class="total-seccion">
+        <h3>Total: {{ obtenerTotal() | currency:'USD' }}</h3>
+        <button (click)="pagar()" class="btn-pagar">Proceder al Pago 💳</button>
+      </div>
+    }
+  </div>
+}
