@@ -1,90 +1,354 @@
-<header class="navbar">
-  <div class="logo">URBAN <span>VIBE</span></div>
-  <nav class="nav-links">
-    <button (click)="cargarPrendasEjemplo()" class="btn-demo">+ Cargar Productos Demo</button>
-    <button (click)="mostrarCarrito = !mostrarCarrito" class="btn-carrito">
-      🛒 Carrito ({{ carrito.length }})
-    </button>
-  </nav>
-</header>
+<div class="app-container">
 
-<main class="container">
-  <!-- Banner principal -->
-  <section class="hero">
-    <h1>ESTILO URBANO & OVERSIZE</h1>
-    <p>Encuentra tu outfit casual, deportivo o la mejor ropa oversize para él y ella.</p>
-  </section>
+  <!-- BANNER SUPERIOR -->
+  <div class="top-bar">
+    @if (usuarioAutenticado && usuarioActivo) {
+      <span>HOLA, {{ usuarioActivo.nombre | uppercase }}</span> &nbsp;|&nbsp;
+    }
+    🚚 ENVÍO GRATIS EN PEDIDOS > $50 USD &nbsp;|&nbsp; <span class="tag-auto">AUTOMÁTICO</span>
+  </div>
 
-  <!-- Catálogo de productos -->
-  <section class="catalogo">
-    <h2>Catálogo de Prendas</h2>
+  <!-- ENCABEZADO -->
+  <header class="main-header">
+    <div class="logo" (click)="cambiarVista('catalogo')">URBAN-VIBE</div>
+    <div class="header-actions">
+      @if (esAdmin) {
+        <button class="admin-pill" (click)="cambiarVista('admin')">⚡ ADMIN</button>
+      }
+      <button class="icon-btn cart-badge" (click)="cambiarVista('carrito')">
+        🛒 @if (carrito.length) { <span class="badge">{{ carrito.length }}</span> }
+      </button>
+      <button class="icon-btn" (click)="cambiarVista('login')">👤</button>
+    </div>
+  </header>
 
-    <div class="grid-productos">
-      @for (item of productos$ | async; track item.id) {
-        <div class="card-producto">
-          <span class="badge">{{ item.estilo }}</span>
-          <img [src]="item.imagenUrl" [alt]="item.nombre" class="img-producto">
+  <!-- PANTALLA: LOGIN -->
+  @if (vistaActual === 'login') {
+    <section class="auth-card">
+      <div class="tag-badge">• MEMBER ACCESS</div>
 
-          <div class="info-producto">
-            <h3>{{ item.nombre }}</h3>
-            <p class="categoria">{{ item.categoria }}</p>
-            <p class="descripcion">{{ item.descripcion }}</p>
-            <p class="precio">{{ item.precio | currency:'USD' }}</p>
+      @if (usuarioAutenticado && usuarioActivo) {
+        <div class="user-welcome-card">
+          <div class="user-avatar">👤</div>
+          <h2>BIENVENIDO(A) {{ usuarioActivo.nombre | uppercase }}</h2>
+          <p class="user-email">{{ usuarioActivo.correo }}</p>
+          <p class="user-subinfo">📞 {{ usuarioActivo.telefono }} | 📍 {{ usuarioActivo.direccion }}</p>
 
-            <!-- Selección de Talla -->
-            <div class="seccion-tallas">
-              <label>Talla:</label>
-              <select [(ngModel)]="tallasSeleccionadas[item.id || '']">
-                @for (talla of item.tallas; track talla) {
-                  <option [value]="talla">{{ talla }}</option>
+          @if (esAdmin) {
+            <span class="role-tag">MODO ADMINISTRADOR</span>
+          } @else {
+            <span class="role-tag-client">CLIENTE VIP</span>
+          }
+
+          <button class="btn-logout" (click)="cerrarSesion()">CERRAR SESIÓN</button>
+        </div>
+      } @else {
+        <h2>URBAN-VIBE</h2>
+        <p class="subtitle">Accede a tu cuenta para continuar con tus compras.</p>
+
+        @if (mensajeErrorAuth) {
+          <div class="error-banner">⚠️ {{ mensajeErrorAuth }}</div>
+        }
+
+        @if (mensajeExitoAuth) {
+          <div class="success-banner">✅ {{ mensajeExitoAuth }}</div>
+        }
+
+        <div class="form-group">
+          <label>CORREO ELECTRÓNICO</label>
+          <input type="email" [(ngModel)]="correoIngresado" placeholder="ejemplo@gmail.com">
+        </div>
+        <div class="form-group">
+          <label>CLAVE DE SEGURIDAD</label>
+          <input type="password" [(ngModel)]="claveIngresada" placeholder="••••••••••••">
+        </div>
+
+        <button class="btn-primary" (click)="procesarLogin()">INICIAR SESIÓN →</button>
+        <p class="switch-auth">¿Aún no tienes cuenta? <a (click)="cambiarVista('registro')">Crear una cuenta</a></p>
+      }
+    </section>
+  }
+
+  <!-- PANTALLA: REGISTRO -->
+  @if (vistaActual === 'registro') {
+    <section class="auth-card">
+      <div class="tag-badge">• MEMBER ACCESS · CREAR CUENTA</div>
+      <h2>CREA TU CUENTA</h2>
+      <p class="subtitle">Ingresa tus datos reales para agilizar tus envíos.</p>
+
+      @if (mensajeErrorAuth) {
+        <div class="error-banner">⚠️ {{ mensajeErrorAuth }}</div>
+      }
+
+      <div class="form-group">
+        <label>NOMBRE COMPLETO</label>
+        <input type="text" [(ngModel)]="nuevoNombre" placeholder="Ej: Mateo Rossi Silva">
+      </div>
+      <div class="form-group">
+        <label>CORREO ELECTRÓNICO (Google, Hotmail, iCloud, etc.)</label>
+        <input type="email" [(ngModel)]="nuevoCorreo" placeholder="Ej: mateo@gmail.com">
+      </div>
+      <div class="form-group">
+        <label>TELÉFONO MÓVIL</label>
+        <input type="tel" [(ngModel)]="nuevoTelefono" placeholder="Ej: +503 7000-0000">
+      </div>
+      <div class="form-group">
+        <label>DIRECCIÓN COMPLETA DE ENVÍO</label>
+        <input type="text" [(ngModel)]="nuevaDireccion" placeholder="Ej: Av. Las Mercedes #123">
+      </div>
+      <div class="form-group">
+        <label>CONTRASEÑA SEGURA</label>
+        <input type="password" [(ngModel)]="nuevaClave" placeholder="••••••••••••">
+      </div>
+
+      <button class="btn-primary" (click)="registrarUsuario()">CREAR CUENTA →</button>
+      <p class="switch-auth">¿Ya tienes una cuenta? <a (click)="cambiarVista('login')">INICIAR SESIÓN</a></p>
+    </section>
+  }
+
+  <!-- PANTALLA: CATÁLOGO DE NAVEGACIÓN RÁPIDA -->
+  @if (vistaActual === 'catalogo') {
+    <main>
+      <div class="hero-banner">
+        <span class="drop-tag">🔴 DROP EXCLUSIVO</span>
+        <h1>MID-SEASON SALE: -50%</h1>
+        <p>Prendas icónicas, cortes oversize y siluetas urbanas.</p>
+      </div>
+
+      <!-- FILTROS HORIZONTALES POR CATEGORÍA Y ESTILO -->
+      <div class="filter-pills">
+        <button class="pill" [class.active]="filtroCategoria === 'TODOS'" (click)="filtrarPorCategoria('TODOS')">TODOS</button>
+        <button class="pill" [class.active]="filtroCategoria === 'HOMBRE'" (click)="filtrarPorCategoria('HOMBRE')">👨 HOMBRE</button>
+        <button class="pill" [class.active]="filtroCategoria === 'MUJER'" (click)="filtrarPorCategoria('MUJER')">👩 MUJER</button>
+        <button class="pill" [class.active]="filtroCategoria === 'OVERSIZE'" (click)="filtrarPorCategoria('OVERSIZE')">OVERSIZE</button>
+        <button class="pill" [class.active]="filtroCategoria === 'RUN'" (click)="filtrarPorCategoria('RUN')">RUN</button>
+        <button class="pill" [class.active]="filtroCategoria === 'CASUAL'" (click)="filtrarPorCategoria('CASUAL')">CASUAL</button>
+        <button class="pill" [class.active]="filtroCategoria === 'ELEGANTE'" (click)="filtrarPorCategoria('ELEGANTE')">ELEGANTE</button>
+      </div>
+
+      @if (obtenerProductosFiltrados() | async; as productos) {
+        <div class="product-grid">
+          @for (p of productos; track p.id || p.nombre) {
+            <div class="product-card" (click)="abrirModalProducto(p)">
+              <div class="image-wrapper">
+                @if (p.descuentoBadge) {
+                  <span class="discount-badge">{{ p.descuentoBadge }}</span>
                 }
-              </select>
-            </div>
+                <img [src]="p.imagenUrl" [alt]="p.nombre">
 
-            <!-- Botones de Acción -->
-            <div class="acciones">
-              <button (click)="agregarAlCarrito(item)" class="btn-comprar">Añadir al Carrito</button>
-              <button (click)="eliminarPrenda(item.id)" class="btn-eliminar" title="Eliminar de Firestore">🗑️</button>
+                @if (esAdmin) {
+                  <div class="admin-actions">
+                    <button class="edit-btn" (click)="prepararEdicion(p, $event)">✏️</button>
+                    <button class="delete-btn" (click)="eliminarPrenda(p.id, $event)">🗑️</button>
+                  </div>
+                }
+              </div>
+              <div class="product-info">
+                <span class="category-tag">{{ p.categoria | uppercase }} · {{ p.estilo || 'URBAN' }}</span>
+                <h3>{{ p.nombre }}</h3>
+                <p class="subtext">{{ p.subtitulo }}</p>
+                <div class="price-row">
+                  <span class="price">${{ p.precio | number:'1.2-2' }}</span>
+                  @if (p.precioOriginal) {
+                    <span class="old-price">${{ p.precioOriginal | number:'1.2-2' }}</span>
+                  }
+                </div>
+                <button class="btn-add" (click)="agregarAlCarritoDirecto(p, $event)">« AGREGAR »</button>
+              </div>
             </div>
-          </div>
+          }
         </div>
       }
-    </div>
-  </section>
+    </main>
+  }
 
-  <!-- Sugerencias -->
-  <section class="sugerencias">
-    💡 <strong>Sugerencias de Estilo:</strong> Combina nuestras prendas <em>Oversize</em> con accesorios minimalistas para obtener un look urbano completo.
-  </section>
-</main>
+  <!-- MODAL FLOTANTE DE DETALLE DE PRENDA + LOOKS DEL MISMO GÉNERO -->
+  @if (productoSeleccionado) {
+    <div class="modal-backdrop" (click)="cerrarModalProducto()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <button class="close-modal" (click)="cerrarModalProducto()">✕</button>
 
-<!-- Carrito Lateral -->
-@if (mostrarCarrito) {
-  <div class="carrito-overlay" (click)="mostrarCarrito = false"></div>
-  <div class="carrito-panel">
-    <h2>Tu Carrito de Compras</h2>
-    <button class="btn-cerrar" (click)="mostrarCarrito = false">✖</button>
-
-    @if (carrito.length === 0) {
-      <p class="empty-msg">Tu carrito está vacío.</p>
-    } @else {
-      <div class="items-carrito">
-        @for (item of carrito; track $index) {
-          <div class="item-carrito">
-            <div>
-              <strong>{{ item.producto.nombre }}</strong>
-              <p>Talla: {{ item.tallaSeleccionada }} | Cant: {{ item.cantidad }}</p>
-              <p class="precio-item">{{ (item.producto.precio * item.cantidad) | currency:'USD' }}</p>
+        <div class="modal-body">
+          <div class="modal-image">
+            <img [src]="productoSeleccionado.imagenUrl" [alt]="productoSeleccionado.nombre">
+          </div>
+          <div class="modal-info">
+            <span class="tag-badge">• {{ productoSeleccionado.categoria | uppercase }} · {{ productoSeleccionado.estilo || 'URBAN' }}</span>
+            <h2>{{ productoSeleccionado.nombre }}</h2>
+            <p class="subtitle">{{ productoSeleccionado.subtitulo }}</p>
+            <div class="price-row">
+              <span class="price-large">${{ productoSeleccionado.precio | number:'1.2-2' }} USD</span>
             </div>
-            <button (click)="eliminarDelCarrito($index)" class="btn-borrar-item">Eliminar</button>
+
+            <div class="selector-group">
+              <label>SELECCIONA TU TALLA:</label>
+              <div class="tallas-buttons">
+                @for (talla of productoSeleccionado.tallas; track talla) {
+                  <button [class.active]="tallaSeleccionadaModal === talla" (click)="tallaSeleccionadaModal = talla">
+                    {{ talla }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="selector-group">
+              <label>CANTIDAD:</label>
+              <div class="quantity-controls">
+                <button (click)="cantidadModal = cantidadModal > 1 ? cantidadModal - 1 : 1">-</button>
+                <span>{{ cantidadModal }}</span>
+                <button (click)="cantidadModal = cantidadModal + 1">+</button>
+              </div>
+            </div>
+
+            <button class="btn-primary" (click)="agregarModalAlCarrito()">AÑADIR AL CARRITO →</button>
+          </div>
+        </div>
+
+        <!-- SECCIÓN DE RECOMENDACIONES FILTRADAS POR EL MISMO GÉNERO -->
+        <div class="cross-selling-section">
+          <h3>COMPLETA TU LOOK (RECOMENDADOS DE {{ productoSeleccionado.categoria | uppercase }})</h3>
+          @if (obtenerSugerencias(productoSeleccionado) | async; as sugerencias) {
+            <div class="suggestions-grid">
+              @for (sug of sugerencias.slice(0, 3); track sug.id || sug.nombre) {
+                <div class="suggestion-card" (click)="abrirModalProducto(sug)">
+                  <img [src]="sug.imagenUrl" [alt]="sug.nombre">
+                  <h4>{{ sug.nombre }}</h4>
+                  <p>${{ sug.precio | number:'1.2-2' }} USD</p>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+      </div>
+    </div>
+  }
+
+  <!-- PANTALLA: PANEL ADMIN -->
+  @if (vistaActual === 'admin' && esAdmin) {
+    <section class="admin-panel">
+      <h2>PANEL DE ADMINISTRACIÓN</h2>
+      <p class="subtitle">Gestión exclusiva del catálogo en Firebase</p>
+
+      <div class="admin-card">
+        <h3>{{ modoEdicion ? 'EDITAR PRENDA' : 'AÑADIR NUEVA PRENDA' }}</h3>
+
+        @if (mensajeErrorAdmin) { <div class="error-banner">⚠️ {{ mensajeErrorAdmin }}</div> }
+        @if (mensajeExitoAdmin) { <div class="success-banner">✅ {{ mensajeExitoAdmin }}</div> }
+
+        <div class="form-group">
+          <label>Nombre de prenda</label>
+          <input type="text" [(ngModel)]="nuevoProducto.nombre" placeholder="Hoodie Heavy Oversize">
+        </div>
+        <div class="form-group">
+          <label>Subtítulo</label>
+          <input type="text" [(ngModel)]="nuevoProducto.subtitulo" placeholder="Acid Grey Washed">
+        </div>
+        <div class="form-group">
+          <label>Categoría (Género)</label>
+          <select [(ngModel)]="nuevoProducto.categoria">
+            <option value="Hombre">Hombre</option>
+            <option value="Mujer">Mujer</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Estilo</label>
+          <select [(ngModel)]="nuevoProducto.estilo">
+            <option value="Oversize">Oversize</option>
+            <option value="Run">Run</option>
+            <option value="Casual">Casual</option>
+            <option value="Elegante">Elegante</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Precio ($ USD)</label>
+          <input type="number" [(ngModel)]="nuevoProducto.precio" placeholder="45.00">
+        </div>
+        <div class="form-group">
+          <label>URL Imagen</label>
+          <input type="text" [(ngModel)]="nuevoProducto.imagenUrl" placeholder="https://...">
+        </div>
+        <button class="btn-primary" (click)="guardarNuevoProducto()">
+          {{ modoEdicion ? 'ACTUALIZAR PRENDA' : 'GUARDAR PRENDA' }}
+        </button>
+      </div>
+    </section>
+  }
+
+  <!-- PANTALLA: CARRITO -->
+  @if (vistaActual === 'carrito') {
+    <section class="cart-screen">
+      <h2>TU CARRITO</h2>
+      <p class="sub-header">Bolsa de compra ({{ carrito.length }} artículos)</p>
+
+      <div class="cart-items">
+        @for (item of carrito; track item.producto.id || item.producto.nombre) {
+          <div class="cart-item">
+            <img [src]="item.producto.imagenUrl" [alt]="item.producto.nombre">
+            <div class="item-details">
+              <h4>{{ item.producto.nombre }}</h4>
+              <p>Talla: {{ item.tallaSeleccionada }}</p>
+              <div class="quantity-controls">
+                <button (click)="cambiarCantidad(item, -1)">-</button>
+                <span>{{ item.cantidad }}</span>
+                <button (click)="cambiarCantidad(item, 1)">+</button>
+              </div>
+            </div>
+            <div class="item-price">
+              ${{ (item.producto.precio * item.cantidad) | number:'1.2-2' }} USD
+            </div>
           </div>
         }
       </div>
 
-      <div class="total-seccion">
-        <h3>Total: {{ obtenerTotal() | currency:'USD' }}</h3>
-        <button (click)="pagar()" class="btn-pagar">Proceder al Pago 💳</button>
+      <div class="summary-box">
+        <h3>RESUMEN</h3>
+        <div class="row"><span>Subtotal:</span> <span>${{ obtenerSubtotal() | number:'1.2-2' }} USD</span></div>
+        <div class="row total-row">
+          <span>TOTAL FINAL:</span>
+          <span class="total-amount">${{ obtenerTotal() | number:'1.2-2' }} USD</span>
+        </div>
       </div>
-    }
-  </div>
-}
+
+      <button class="btn-primary" (click)="procederAlPago()">CONTINUAR CON LA COMPRA →</button>
+    </section>
+  }
+
+  <!-- PANTALLA: CHECKOUT -->
+  @if (vistaActual === 'checkout') {
+    <section class="checkout-screen">
+      <h2>FINALIZAR COMPRA</h2>
+      <p class="subtitle">Confirma la información de entrega y pago.</p>
+
+      <div class="form-group">
+        <label>NOMBRE DEL DESTINATARIO</label>
+        <input type="text" [(ngModel)]="datosEnvio.nombre" placeholder="Nombre completo">
+      </div>
+      <div class="form-group">
+        <label>TELÉFONO DE CONTACTO</label>
+        <input type="tel" [(ngModel)]="datosEnvio.telefono" placeholder="Número telefónico">
+      </div>
+      <div class="form-group">
+        <label>DIRECCIÓN COMPLETA DE ENTREGA</label>
+        <input type="text" [(ngModel)]="datosEnvio.direccion" placeholder="Dirección de tu casa u oficina">
+      </div>
+      <div class="form-group">
+        <label>NÚMERO DE TARJETA</label>
+        <input type="text" [(ngModel)]="datosEnvio.tarjeta" placeholder="4242 8891 2041 9012">
+      </div>
+
+      <button class="btn-primary" (click)="confirmarPago()">
+        CONFIRMAR PEDIDO Y PAGAR ${{ obtenerTotal() | number:'1.2-2' }} USD
+      </button>
+    </section>
+  }
+
+  <!-- BARRA DE NAVEGACIÓN INFERIOR -->
+  <nav class="bottom-nav">
+    <button (click)="cambiarVista('catalogo')">🏠<br>INICIO</button>
+    <button (click)="cambiarVista('catalogo')">🔲<br>CATÁLOGO</button>
+    <button (click)="cambiarVista('carrito')">🛒<br>CARRITO</button>
+    <button (click)="cambiarVista('login')">👤<br>MI CUENTA</button>
+  </nav>
+
+</div>
