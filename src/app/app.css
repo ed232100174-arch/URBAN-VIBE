@@ -114,13 +114,18 @@
   margin-bottom: 4px;
   color: #333;
 }
-.form-group input {
+.form-group input, .form-group select {
   width: 100%;
   padding: 12px;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   font-size: 13px;
   background: #fafafa;
+  outline: none;
+}
+.form-group input:focus, .form-group select:focus {
+  border-color: #000;
+  background: #fff;
 }
 
 .btn-primary {
@@ -358,6 +363,161 @@
   border-top: 1px solid #ddd;
 }
 
+/* CHECKOUT & INFORMACIÓN DE PAGO */
+.payment-section {
+  margin-top: 24px;
+  border-top: 1px solid #eaeaea;
+  padding-top: 16px;
+}
+.payment-section h3 {
+  font-size: 16px;
+  font-weight: 900;
+  margin-bottom: 12px;
+}
+.section-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #444;
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* MÉTODOS DE PAGO SLOTS */
+.payment-methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.method-btn {
+  flex: 1 1 45%;
+  padding: 10px 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.method-btn .radio-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #aaa;
+  display: inline-block;
+}
+.method-btn.active {
+  border-color: #0088ff;
+  background-color: #f0f7ff;
+  color: #0056b3;
+}
+.method-btn.active .radio-dot {
+  border-color: #0088ff;
+  background-color: #0088ff;
+}
+.method-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #fdfdfd;
+}
+
+/* FORMULARIO EXTENDIDO DE TARJETA */
+.card-form-box {
+  border: 1px dashed #cccccc;
+  border-radius: 8px;
+  padding: 16px;
+  background: #fafafa;
+  margin-bottom: 20px;
+}
+.card-form-box h4 {
+  font-size: 13px;
+  font-weight: 800;
+  margin-top: 0;
+  margin-bottom: 14px;
+  color: #222;
+}
+
+.grid-3-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  margin-bottom: 14px;
+}
+.checkbox-group input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.checkbox-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #444;
+  cursor: pointer;
+}
+
+.accepted-cards {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 10px;
+  color: #666;
+  font-weight: 700;
+}
+.card-badges {
+  display: flex;
+  gap: 4px;
+}
+.badge {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 8px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+.badge.amex { background: #006fcf; }
+.badge.visa { background: #1a1f71; }
+.badge.mastercard { background: #eb001b; }
+
+/* MODAL DE CONFIRMACIÓN DE PAGO EXITOSO */
+.success-checkout-modal {
+  text-align: center;
+  padding: 32px 24px;
+  max-width: 380px;
+}
+
+.success-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.success-checkout-modal h2 {
+  font-size: 20px;
+  font-weight: 900;
+  margin-bottom: 6px;
+  color: #0d0d0d;
+}
+
+.success-detail {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+
 /* BOTTOM NAV */
 .bottom-nav {
   position: fixed;
@@ -464,7 +624,6 @@
   color: #888;
   margin-top: 6px;
 }
-/* ACCIONES DE ADMINISTRADOR SOBRE LAS IMÁGENES */
 .admin-actions {
   position: absolute;
   top: 8px;
@@ -482,7 +641,6 @@
   font-size: 12px;
 }
 
-/* CATEGORÍA Y ESTILO */
 .category-tag {
   font-size: 10px;
   font-weight: 800;

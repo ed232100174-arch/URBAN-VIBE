@@ -48,13 +48,30 @@ export class App implements OnInit {
   usuarioActivo: Usuario | null = null;
   esAdmin: boolean = false;
 
-  // Datos para Checkout
+  // Datos para Checkout (Envío)
   datosEnvio = {
     nombre: '',
     telefono: '',
-    direccion: '',
-    tarjeta: ''
+    direccion: ''
   };
+
+  // Configuración de Pago Extendido (Tarjeta)
+  metodoPago: string = 'tarjeta';
+
+  datosTarjeta = {
+    titular: '',
+    numero: '',
+    cvv: '',
+    mes: '',
+    anio: '',
+    guardar: false
+  };
+
+  listaMeses: string[] = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+  listaAnios: string[] = ['2026', '2027', '2028', '2029', '2030', '2031', '2032'];
+
+  // Modal de Pago Exitoso
+  mostrarModalExito: boolean = false;
 
   // Modal de Detalle de Producto
   productoSeleccionado: Producto | null = null;
@@ -125,11 +142,18 @@ export class App implements OnInit {
   obtenerProductosFiltrados(): Observable<Producto[]> {
     return this.productosService.listar().pipe(
       map(productos => {
-        if (this.filtroCategoria === 'TODOS') return productos;
-        if (this.filtroCategoria === 'HOMBRE' || this.filtroCategoria === 'MUJER') {
-          return productos.filter(p => p.categoria && p.categoria.toUpperCase() === this.filtroCategoria);
+        const filtroLimpio = (this.filtroCategoria || 'TODOS').trim().toUpperCase();
+
+        if (!filtroLimpio || filtroLimpio === 'TODOS') {
+          return productos;
         }
-        return productos.filter(p => p.estilo && p.estilo.toUpperCase() === this.filtroCategoria);
+
+        return productos.filter(p => {
+          const cat = (p.categoria || '').trim().toUpperCase();
+          const est = (p.estilo || '').trim().toUpperCase();
+
+          return cat === filtroLimpio || est === filtroLimpio;
+        });
       })
     );
   }
@@ -342,8 +366,49 @@ export class App implements OnInit {
     }
   }
 
+  // Formatea el número de tarjeta en bloques de 4 dígitos (0000-0000-0000-0000)
+  formatearNumeroTarjeta(event: any): void {
+    let valor = event.target.value.replace(/\D/g, '');
+    valor = valor.substring(0, 16);
+    const bloques = valor.match(/.{1,4}/g);
+    this.datosTarjeta.numero = bloques ? bloques.join('-') : valor;
+  }
+
+  // Validaciones del formulario de pago
+  validarPago(): boolean {
+    if (!this.datosEnvio.nombre || !this.datosEnvio.telefono || !this.datosEnvio.direccion) {
+      return false;
+    }
+
+    if (this.metodoPago === 'tarjeta') {
+      const numLimpio = this.datosTarjeta.numero.replace(/-/g, '');
+      return (
+        this.datosTarjeta.titular.trim() !== '' &&
+        numLimpio.length >= 15 &&
+        this.datosTarjeta.cvv.length >= 3 &&
+        this.datosTarjeta.mes !== '' &&
+        this.datosTarjeta.anio !== ''
+      );
+    }
+    return true;
+  }
+
   confirmarPago(): void {
+    if (!this.validarPago()) {
+      alert('Por favor completa todos los datos obligatorios de envío y tarjeta.');
+      return;
+    }
+
+    // Muestra la modal personalizada en lugar del alert nativo
+    this.mostrarModalExito = true;
+
+    // Resetear formulario de tarjeta y limpiar carrito
+    this.datosTarjeta = { titular: '', numero: '', cvv: '', mes: '', anio: '', guardar: false };
     this.carrito = [];
+  }
+
+  cerrarModalExito(): void {
+    this.mostrarModalExito = false;
     this.cambiarVista('catalogo');
   }
 

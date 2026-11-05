@@ -25,7 +25,7 @@
   <!-- PANTALLA: LOGIN -->
   @if (vistaActual === 'login') {
     <section class="auth-card">
-      <div class="tag-badge">• MEMBER ACCESS</div>
+      <div class="tag-badge">MEMBER ACCESS</div>
 
       @if (usuarioAutenticado && usuarioActivo) {
         <div class="user-welcome-card">
@@ -72,7 +72,7 @@
   <!-- PANTALLA: REGISTRO -->
   @if (vistaActual === 'registro') {
     <section class="auth-card">
-      <div class="tag-badge">• MEMBER ACCESS · CREAR CUENTA</div>
+      <div class="tag-badge">MEMBER ACCESS · CREAR CUENTA</div>
       <h2>CREA TU CUENTA</h2>
       <p class="subtitle">Ingresa tus datos reales para agilizar tus envíos.</p>
 
@@ -162,7 +162,7 @@
     </main>
   }
 
-  <!-- MODAL FLOTANTE DE DETALLE DE PRENDA + LOOKS DEL MISMO GÉNERO -->
+  <!-- MODAL FLOTANTE DE DETALLE DE PRENDA -->
   @if (productoSeleccionado) {
     <div class="modal-backdrop" (click)="cerrarModalProducto()">
       <div class="modal-content" (click)="$event.stopPropagation()">
@@ -173,7 +173,7 @@
             <img [src]="productoSeleccionado.imagenUrl" [alt]="productoSeleccionado.nombre">
           </div>
           <div class="modal-info">
-            <span class="tag-badge">• {{ productoSeleccionado.categoria | uppercase }} · {{ productoSeleccionado.estilo || 'URBAN' }}</span>
+            <span class="tag-badge">{{ productoSeleccionado.categoria | uppercase }} · {{ productoSeleccionado.estilo || 'URBAN' }}</span>
             <h2>{{ productoSeleccionado.nombre }}</h2>
             <p class="subtitle">{{ productoSeleccionado.subtitulo }}</p>
             <div class="price-row">
@@ -204,7 +204,7 @@
           </div>
         </div>
 
-        <!-- SECCIÓN DE RECOMENDACIONES FILTRADAS POR EL MISMO GÉNERO -->
+        <!-- RECOMENDACIONES -->
         <div class="cross-selling-section">
           <h3>COMPLETA TU LOOK (RECOMENDADOS DE {{ productoSeleccionado.categoria | uppercase }})</h3>
           @if (obtenerSugerencias(productoSeleccionado) | async; as sugerencias) {
@@ -320,6 +320,7 @@
       <h2>FINALIZAR COMPRA</h2>
       <p class="subtitle">Confirma la información de entrega y pago.</p>
 
+      <!-- DATOS DE ENVÍO -->
       <div class="form-group">
         <label>NOMBRE DEL DESTINATARIO</label>
         <input type="text" [(ngModel)]="datosEnvio.nombre" placeholder="Nombre completo">
@@ -332,15 +333,119 @@
         <label>DIRECCIÓN COMPLETA DE ENTREGA</label>
         <input type="text" [(ngModel)]="datosEnvio.direccion" placeholder="Dirección de tu casa u oficina">
       </div>
-      <div class="form-group">
-        <label>NÚMERO DE TARJETA</label>
-        <input type="text" [(ngModel)]="datosEnvio.tarjeta" placeholder="4242 8891 2041 9012">
+
+      <!-- SECCIÓN INFORMACIÓN DE PAGO -->
+      <div class="payment-section">
+        <h3>Información de pago</h3>
+
+        <label class="section-label">Forma de pago</label>
+        <div class="payment-methods">
+          <button
+            type="button"
+            class="method-btn"
+            [class.active]="metodoPago === 'tarjeta'"
+            (click)="metodoPago = 'tarjeta'">
+            <span class="radio-dot"></span> Tarjeta
+          </button>
+          <button type="button" class="method-btn disabled" title="Próximamente">
+            <span class="radio-dot"></span> Cuotas sin intereses
+          </button>
+          <button type="button" class="method-btn disabled">
+            <span class="radio-dot"></span> Pago en tienda
+          </button>
+          <button type="button" class="method-btn disabled">
+            <span class="radio-dot"></span> Gift card
+          </button>
+        </div>
+
+        <!-- FORMULARIO EXTENDIDO DE TARJETA -->
+        @if (metodoPago === 'tarjeta') {
+          <div class="card-form-box">
+            <h4>Seleccionar o agregar tarjeta</h4>
+
+            <div class="form-group">
+              <label>NOMBRE DEL TITULAR DE LA TARJETA</label>
+              <input
+                type="text"
+                [(ngModel)]="datosTarjeta.titular"
+                placeholder="Nombre o titular">
+            </div>
+
+            <div class="form-group">
+              <label>NÚMERO DE TARJETA</label>
+              <input
+                type="text"
+                [(ngModel)]="datosTarjeta.numero"
+                maxlength="19"
+                (input)="formatearNumeroTarjeta($event)"
+                placeholder="0000-0000-0000-0000">
+            </div>
+
+            <div class="grid-3-cols">
+              <div class="form-group">
+                <label>CÓDIGO SEGURIDAD (CVV)</label>
+                <input
+                  type="password"
+                  [(ngModel)]="datosTarjeta.cvv"
+                  maxlength="4"
+                  placeholder="123">
+              </div>
+
+              <div class="form-group">
+                <label>MES VENCIMIENTO</label>
+                <select [(ngModel)]="datosTarjeta.mes">
+                  <option value="" disabled selected>Seleccionar</option>
+                  @for (m of listaMeses; track m) {
+                    <option [value]="m">{{ m }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>AÑO VENCIMIENTO</label>
+                <select [(ngModel)]="datosTarjeta.anio">
+                  <option value="" disabled selected>Seleccionar</option>
+                  @for (a of listaAnios; track a) {
+                    <option [value]="a">{{ a }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div class="checkbox-group">
+              <input type="checkbox" id="guardarTarjeta" [(ngModel)]="datosTarjeta.guardar">
+              <label for="guardarTarjeta">Guardar tarjeta para pagos futuros</label>
+            </div>
+
+            <div class="accepted-cards">
+              <span>Tarjetas aceptadas:</span>
+              <div class="card-badges">
+                <span class="badge amex">AMEX</span>
+                <span class="badge visa">VISA</span>
+                <span class="badge mastercard">Mastercard</span>
+              </div>
+            </div>
+          </div>
+        }
       </div>
 
       <button class="btn-primary" (click)="confirmarPago()">
         CONFIRMAR PEDIDO Y PAGAR ${{ obtenerTotal() | number:'1.2-2' }} USD
       </button>
     </section>
+  }
+
+  <!-- MODAL ELEGANTE DE CONFIRMACIÓN DE PAGO EXITOSO -->
+  @if (mostrarModalExito) {
+    <div class="modal-backdrop">
+      <div class="modal-content success-checkout-modal">
+        <div class="success-icon">🎉</div>
+        <h2>¡COMPRA CONFIRMADA!</h2>
+        <p class="subtitle">Tu pedido ha sido procesado con éxito.</p>
+        <p class="success-detail">En breve recibirás un correo con los detalles de seguimiento de tu paquete.</p>
+        <button class="btn-primary" (click)="cerrarModalExito()">VOLVER AL INICIO</button>
+      </div>
+    </div>
   }
 
   <!-- BARRA DE NAVEGACIÓN INFERIOR -->
