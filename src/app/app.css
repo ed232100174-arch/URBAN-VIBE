@@ -79,10 +79,11 @@
   cursor: pointer;
 }
 
-/* AUTH CARDS */
-.auth-card, .admin-panel, .cart-screen, .checkout-screen {
+/* AUTH CARDS & SCREENS */
+.auth-card, .admin-panel, .cart-screen, .checkout-screen, .orders-screen {
   padding: 20px 18px;
   background: #fff;
+  min-height: calc(100vh - 130px);
 }
 .tag-badge {
   font-size: 10px;
@@ -94,7 +95,7 @@
   border-radius: 12px;
   margin-bottom: 12px;
 }
-.auth-card h2 {
+.auth-card h2, .orders-screen h2 {
   font-size: 22px;
   font-weight: 900;
   letter-spacing: -0.5px;
@@ -202,6 +203,7 @@
   border-radius: 16px;
   font-size: 11px;
   font-weight: 700;
+  cursor: pointer;
 }
 .pill.active {
   background: #0d0d0d;
@@ -243,15 +245,24 @@
   padding: 2px 5px;
   border-radius: 3px;
 }
-.delete-btn {
+
+/* BOTÓN CORAZÓN FAVORITOS */
+.fav-btn {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  background: rgba(255, 0, 0, 0.85);
+  bottom: 8px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.92);
   border: none;
-  border-radius: 4px;
-  padding: 3px 6px;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 4;
 }
 
 .product-info {
@@ -296,6 +307,99 @@
   font-size: 11px;
   cursor: pointer;
   border-radius: 4px;
+}
+
+/* MIS PEDIDOS & FAVORITOS */
+.orders-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  background: #fafafa;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  color: #444;
+}
+.tab-btn.active {
+  background: #0d0d0d;
+  color: #fff;
+  border-color: #0d0d0d;
+}
+.empty-state-box {
+  background: #fafafa;
+  border: 1px dashed #ddd;
+  border-radius: 8px;
+  padding: 24px 16px;
+  text-align: center;
+  margin-top: 10px;
+}
+.empty-state-box p {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 12px;
+}
+.order-card {
+  background: #fafafa;
+  border: 1px solid #eaeaea;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.order-date {
+  font-size: 12px;
+  font-weight: 800;
+  color: #111;
+}
+.order-status {
+  background: #0d0d0d;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 12px;
+}
+.order-address {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 10px;
+}
+.order-items-list {
+  border-top: 1px solid #e5e5e5;
+  padding-top: 8px;
+}
+.order-item-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 4px 0;
+  color: #333;
+}
+.order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #e5e5e5;
+  margin-top: 8px;
+  padding-top: 8px;
+  font-size: 11px;
+  font-weight: 800;
+}
+.order-total {
+  font-size: 14px;
+  font-weight: 900;
+  color: #000;
 }
 
 /* CARRITO */
@@ -382,7 +486,6 @@
   margin-bottom: 8px;
 }
 
-/* MÉTODOS DE PAGO SLOTS */
 .payment-methods {
   display: flex;
   flex-wrap: wrap;
@@ -426,7 +529,6 @@
   background: #fdfdfd;
 }
 
-/* FORMULARIO EXTENDIDO DE TARJETA */
 .card-form-box {
   border: 1px dashed #cccccc;
   border-radius: 8px;
@@ -498,19 +600,16 @@
   padding: 32px 24px;
   max-width: 380px;
 }
-
 .success-icon {
   font-size: 48px;
   margin-bottom: 12px;
 }
-
 .success-checkout-modal h2 {
   font-size: 20px;
   font-weight: 900;
   margin-bottom: 6px;
   color: #0d0d0d;
 }
-
 .success-detail {
   font-size: 12px;
   color: #666;

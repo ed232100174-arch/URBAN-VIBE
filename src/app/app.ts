@@ -1,11 +1,9 @@
-import { Component, inject, OnInit } from '@angular/core';
-import { AsyncPipe, DecimalPipe, CommonModule } from '@angular/common';
+import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
+import { DecimalPipe, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ProductosService, Producto, ItemCarrito } from './services/productos';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { ProductosService, Producto, ItemCarrito, Pedido } from './services/productos';
 
-type Vista = 'login' | 'registro' | 'catalogo' | 'carrito' | 'checkout' | 'admin';
+type Vista = 'login' | 'registro' | 'catalogo' | 'carrito' | 'checkout' | 'admin' | 'pedidos';
 
 interface Usuario {
   nombre: string;
@@ -18,44 +16,44 @@ interface Usuario {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, AsyncPipe, DecimalPipe, FormsModule],
+  imports: [CommonModule, DecimalPipe, FormsModule],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App implements OnInit {
   private productosService = inject(ProductosService);
+  private cdr = inject(ChangeDetectorRef);
+
+  todosLosProductos: Producto[] = [];
 
   vistaActual: Vista = 'catalogo';
+  subVistaPedidos: 'compras' | 'favoritos' = 'compras';
   carrito: ItemCarrito[] = [];
+  misPedidos: Pedido[] = [];
+  favoritos: Producto[] = [];
   filtroCategoria: string = 'TODOS';
 
-  // Base de datos local de usuarios
   usuariosRegistrados: Usuario[] = [];
 
-  // Formulario de Registro
   nuevoNombre: string = '';
   nuevoCorreo: string = '';
   nuevaClave: string = '';
   nuevoTelefono: string = '';
   nuevaDireccion: string = '';
 
-  // Formulario de Login
   correoIngresado: string = '';
   claveIngresada: string = '';
 
-  // Estado de Sesión Activa
   usuarioAutenticado: boolean = false;
   usuarioActivo: Usuario | null = null;
   esAdmin: boolean = false;
 
-  // Datos para Checkout (Envío)
   datosEnvio = {
     nombre: '',
     telefono: '',
     direccion: ''
   };
 
-  // Configuración de Pago Extendido (Tarjeta)
   metodoPago: string = 'tarjeta';
 
   datosTarjeta = {
@@ -70,25 +68,20 @@ export class App implements OnInit {
   listaMeses: string[] = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
   listaAnios: string[] = ['2026', '2027', '2028', '2029', '2030', '2031', '2032'];
 
-  // Modal de Pago Exitoso
   mostrarModalExito: boolean = false;
 
-  // Modal de Detalle de Producto
   productoSeleccionado: Producto | null = null;
   tallaSeleccionadaModal: string = 'M';
   cantidadModal: number = 1;
 
-  // Edición de Prenda (Admin)
   modoEdicion: boolean = false;
   productoEditandoId: string | null = null;
 
-  // Feedback
   mensajeErrorAuth: string = '';
   mensajeExitoAuth: string = '';
   mensajeErrorAdmin: string = '';
   mensajeExitoAdmin: string = '';
 
-  // Formulario Admin (Crear / Editar)
   nuevoProducto: Producto = {
     nombre: '',
     subtitulo: '',
@@ -102,20 +95,50 @@ export class App implements OnInit {
     imagenUrl: ''
   };
 
-  ngOnInit() {
-    // 1. Recuperar usuarios registrados previos
+  async ngOnInit() {
     const usuariosGuardados = localStorage.getItem('urbanvibe_usuarios');
     if (usuariosGuardados) {
       this.usuariosRegistrados = JSON.parse(usuariosGuardados);
     }
 
-    // 2. Recuperar sesión activa al recargar pantalla (F5)
+    const favGuardados = localStorage.getItem('urbanvibe_favoritos');
+    if (favGuardados) {
+      this.favoritos = JSON.parse(favGuardados);
+    }
+
     const sesionGuardada = localStorage.getItem('urbanvibe_sesion');
     if (sesionGuardada) {
       const datosSesion = JSON.parse(sesionGuardada);
       this.usuarioAutenticado = true;
       this.usuarioActivo = datosSesion.usuario;
       this.esAdmin = datosSesion.esAdmin;
+    }
+
+    await this.cargarProductos();
+    if (this.usuarioActivo) {
+      await this.cargarPedidos();
+    }
+  }
+
+  async cargarProductos() {
+    try {
+      this.todosLosProductos = await this.productosService.obtenerTodos();
+      this.cdr.detectChanges();
+    } catch (error) {
+      console.error('Error al cargar productos desde Firebase:', error);
+    }
+  }
+
+  async cargarPedidos() {
+    if (!this.usuarioActivo) {
+      this.misPedidos = [];
+      return;
+    }
+    try {
+      this.misPedidos = await this.productosService.obtenerPedidosPorUsuario(this.usuarioActivo.correo);
+      this.cdr.detectChanges();
+    } catch (error) {
+      console.error('Error al cargar pedidos desde Firebase:', error);
     }
   }
 
@@ -132,6 +155,14 @@ export class App implements OnInit {
       this.datosEnvio.direccion = this.usuarioActivo.direccion;
     }
 
+    if (vista === 'catalogo') {
+      this.cargarProductos();
+    }
+
+    if (vista === 'pedidos') {
+      this.cargarPedidos();
+    }
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -139,29 +170,44 @@ export class App implements OnInit {
     this.filtroCategoria = filtro;
   }
 
-  obtenerProductosFiltrados(): Observable<Producto[]> {
-    return this.productosService.listar().pipe(
-      map(productos => {
-        const filtroLimpio = (this.filtroCategoria || 'TODOS').trim().toUpperCase();
+  obtenerProductosFiltrados(): Producto[] {
+    const filtroLimpio = (this.filtroCategoria || 'TODOS').trim().toUpperCase();
 
-        if (!filtroLimpio || filtroLimpio === 'TODOS') {
-          return productos;
-        }
+    if (!filtroLimpio || filtroLimpio === 'TODOS') {
+      return this.todosLosProductos;
+    }
 
-        return productos.filter(p => {
-          const cat = (p.categoria || '').trim().toUpperCase();
-          const est = (p.estilo || '').trim().toUpperCase();
+    return this.todosLosProductos.filter(p => {
+      const cat = (p.categoria || '').trim().toUpperCase();
+      const est = (p.estilo || '').trim().toUpperCase();
+      return cat === filtroLimpio || est === filtroLimpio;
+    });
+  }
 
-          return cat === filtroLimpio || est === filtroLimpio;
-        });
-      })
+  obtenerSugerencias(productoActual: Producto): Producto[] {
+    return this.todosLosProductos.filter(
+      p => p.id !== productoActual.id && p.categoria === productoActual.categoria
     );
   }
 
-  obtenerSugerencias(productoActual: Producto): Observable<Producto[]> {
-    return this.productosService.listar().pipe(
-      map(productos => productos.filter(p => p.id !== productoActual.id && p.categoria === productoActual.categoria))
+  // FAVORITOS
+  esFavorito(producto: Producto): boolean {
+    return this.favoritos.some(
+      f => (f.id && producto.id && f.id === producto.id) || f.nombre === producto.nombre
     );
+  }
+
+  toggleFavorito(producto: Producto, event?: Event) {
+    if (event) event.stopPropagation();
+
+    if (this.esFavorito(producto)) {
+      this.favoritos = this.favoritos.filter(
+        f => !((f.id && producto.id && f.id === producto.id) || f.nombre === producto.nombre)
+      );
+    } else {
+      this.favoritos.push(producto);
+    }
+    localStorage.setItem('urbanvibe_favoritos', JSON.stringify(this.favoritos));
   }
 
   abrirModalProducto(p: Producto) {
@@ -240,7 +286,7 @@ export class App implements OnInit {
     setTimeout(() => this.cambiarVista('login'), 1200);
   }
 
-  procesarLogin() {
+  async procesarLogin() {
     this.mensajeErrorAuth = '';
     this.mensajeExitoAuth = '';
 
@@ -251,7 +297,6 @@ export class App implements OnInit {
 
     const correo = this.correoIngresado.toLowerCase().trim();
 
-    // Administrador
     if (correo === 'admin@urbanvibe.com' || correo === 'ed232100174-arch@urbanvibe.com') {
       if (this.claveIngresada === 'admin123' || this.claveIngresada === '123456') {
         this.usuarioAutenticado = true;
@@ -269,6 +314,7 @@ export class App implements OnInit {
           esAdmin: true
         }));
 
+        await this.cargarPedidos();
         this.cambiarVista('catalogo');
         return;
       } else {
@@ -277,7 +323,6 @@ export class App implements OnInit {
       }
     }
 
-    // Cliente
     const usuarioEncontrado = this.usuariosRegistrados.find(
       u => u.correo.toLowerCase() === correo
     );
@@ -301,6 +346,7 @@ export class App implements OnInit {
       esAdmin: false
     }));
 
+    await this.cargarPedidos();
     this.limpiarFormularios();
     this.cambiarVista('catalogo');
   }
@@ -309,6 +355,7 @@ export class App implements OnInit {
     this.usuarioAutenticado = false;
     this.esAdmin = false;
     this.usuarioActivo = null;
+    this.misPedidos = [];
 
     localStorage.removeItem('urbanvibe_sesion');
 
@@ -326,7 +373,6 @@ export class App implements OnInit {
     this.nuevaDireccion = '';
   }
 
-  // CARRITO & CHECKOUT
   agregarAlCarritoDirecto(producto: Producto, event: Event) {
     event.stopPropagation();
     const talla = (producto.tallas && producto.tallas.length > 0) ? producto.tallas[0] : 'M';
@@ -366,7 +412,6 @@ export class App implements OnInit {
     }
   }
 
-  // Formatea el número de tarjeta en bloques de 4 dígitos (0000-0000-0000-0000)
   formatearNumeroTarjeta(event: any): void {
     let valor = event.target.value.replace(/\D/g, '');
     valor = valor.substring(0, 16);
@@ -374,7 +419,6 @@ export class App implements OnInit {
     this.datosTarjeta.numero = bloques ? bloques.join('-') : valor;
   }
 
-  // Validaciones del formulario de pago
   validarPago(): boolean {
     if (!this.datosEnvio.nombre || !this.datosEnvio.telefono || !this.datosEnvio.direccion) {
       return false;
@@ -393,26 +437,43 @@ export class App implements OnInit {
     return true;
   }
 
-  confirmarPago(): void {
+  async confirmarPago(): Promise<void> {
     if (!this.validarPago()) {
       alert('Por favor completa todos los datos obligatorios de envío y tarjeta.');
       return;
     }
 
-    // Muestra la modal personalizada en lugar del alert nativo
-    this.mostrarModalExito = true;
+    if (this.usuarioActivo) {
+      const nuevoPedido: Pedido = {
+        correoUsuario: this.usuarioActivo.correo,
+        nombreDestinatario: this.datosEnvio.nombre,
+        direccion: this.datosEnvio.direccion,
+        telefono: this.datosEnvio.telefono,
+        items: JSON.parse(JSON.stringify(this.carrito)),
+        total: this.obtenerTotal(),
+        fecha: new Date().toLocaleDateString('es-SV'),
+        estado: 'En preparación'
+      };
 
-    // Resetear formulario de tarjeta y limpiar carrito
+      try {
+        await this.productosService.guardarPedido(nuevoPedido);
+        await this.cargarPedidos();
+      } catch (error) {
+        console.error('Error al guardar el pedido en Firebase:', error);
+      }
+    }
+
+    this.mostrarModalExito = true;
     this.datosTarjeta = { titular: '', numero: '', cvv: '', mes: '', anio: '', guardar: false };
     this.carrito = [];
   }
 
   cerrarModalExito(): void {
     this.mostrarModalExito = false;
-    this.cambiarVista('catalogo');
+    this.subVistaPedidos = 'compras';
+    this.cambiarVista('pedidos');
   }
 
-  // ADMIN
   prepararEdicion(producto: Producto, event: Event) {
     event.stopPropagation();
     this.modoEdicion = true;
@@ -446,6 +507,7 @@ export class App implements OnInit {
         await this.productosService.agregar(this.nuevoProducto);
         this.mensajeExitoAdmin = '¡Prenda guardada con éxito en el catálogo!';
       }
+      await this.cargarProductos();
       this.resetearFormularioAdmin();
     } catch (error) {
       console.error('Error guardando en Firebase:', error);
@@ -471,8 +533,9 @@ export class App implements OnInit {
 
     setTimeout(() => {
       this.mensajeExitoAdmin = '';
+      this.filtroCategoria = 'TODOS';
       this.cambiarVista('catalogo');
-    }, 1200);
+    }, 800);
   }
 
   async eliminarPrenda(id?: string, event?: Event): Promise<void> {
@@ -480,6 +543,7 @@ export class App implements OnInit {
     if (id) {
       try {
         await this.productosService.eliminar(id);
+        await this.cargarProductos();
       } catch (error) {
         console.error('Error al eliminar prenda:', error);
       }

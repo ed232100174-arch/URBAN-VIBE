@@ -40,6 +40,10 @@
             <span class="role-tag-client">CLIENTE VIP</span>
           }
 
+          <button class="btn-secondary" style="margin-top: 16px;" (click)="cambiarVista('pedidos')">
+            📦 VER MIS PEDIDOS Y FAVORITOS
+          </button>
+
           <button class="btn-logout" (click)="cerrarSesion()">CERRAR SESIÓN</button>
         </div>
       } @else {
@@ -106,7 +110,7 @@
     </section>
   }
 
-  <!-- PANTALLA: CATÁLOGO DE NAVEGACIÓN RÁPIDA -->
+  <!-- PANTALLA: INICIO / CATÁLOGO -->
   @if (vistaActual === 'catalogo') {
     <main>
       <div class="hero-banner">
@@ -115,18 +119,16 @@
         <p>Prendas icónicas, cortes oversize y siluetas urbanas.</p>
       </div>
 
-      <!-- FILTROS HORIZONTALES POR CATEGORÍA Y ESTILO -->
+      <!-- FILTROS HORIZONTALES URBAN -->
       <div class="filter-pills">
         <button class="pill" [class.active]="filtroCategoria === 'TODOS'" (click)="filtrarPorCategoria('TODOS')">TODOS</button>
         <button class="pill" [class.active]="filtroCategoria === 'HOMBRE'" (click)="filtrarPorCategoria('HOMBRE')">👨 HOMBRE</button>
         <button class="pill" [class.active]="filtroCategoria === 'MUJER'" (click)="filtrarPorCategoria('MUJER')">👩 MUJER</button>
         <button class="pill" [class.active]="filtroCategoria === 'OVERSIZE'" (click)="filtrarPorCategoria('OVERSIZE')">OVERSIZE</button>
         <button class="pill" [class.active]="filtroCategoria === 'RUN'" (click)="filtrarPorCategoria('RUN')">RUN</button>
-        <button class="pill" [class.active]="filtroCategoria === 'CASUAL'" (click)="filtrarPorCategoria('CASUAL')">CASUAL</button>
-        <button class="pill" [class.active]="filtroCategoria === 'ELEGANTE'" (click)="filtrarPorCategoria('ELEGANTE')">ELEGANTE</button>
       </div>
 
-      @if (obtenerProductosFiltrados() | async; as productos) {
+      @if (obtenerProductosFiltrados(); as productos) {
         <div class="product-grid">
           @for (p of productos; track p.id || p.nombre) {
             <div class="product-card" (click)="abrirModalProducto(p)">
@@ -135,6 +137,11 @@
                   <span class="discount-badge">{{ p.descuentoBadge }}</span>
                 }
                 <img [src]="p.imagenUrl" [alt]="p.nombre">
+
+                <!-- BOTÓN CORAZÓN FAVORITOS -->
+                <button type="button" class="fav-btn" (click)="toggleFavorito(p, $event)">
+                  {{ esFavorito(p) ? '❤️' : '🤍' }}
+                </button>
 
                 @if (esAdmin) {
                   <div class="admin-actions">
@@ -160,6 +167,105 @@
         </div>
       }
     </main>
+  }
+
+  <!-- PANTALLA: MIS PEDIDOS Y PRENDAS FAVORITAS -->
+  @if (vistaActual === 'pedidos') {
+    <section class="orders-screen">
+      <div class="tag-badge">MI ACTIVIDAD</div>
+      <h2>MIS PEDIDOS</h2>
+      <p class="subtitle">Revisa tus compras realizadas y tus prendas favoritas guardadas.</p>
+
+      <!-- PESTAÑAS INTERNAS -->
+      <div class="orders-tabs">
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="subVistaPedidos === 'compras'"
+          (click)="subVistaPedidos = 'compras'">
+          📦 COMPRAS ({{ misPedidos.length }})
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          [class.active]="subVistaPedidos === 'favoritos'"
+          (click)="subVistaPedidos = 'favoritos'">
+          ❤️ FAVORITOS ({{ favoritos.length }})
+        </button>
+      </div>
+
+      <!-- SUB-VISTA 1: COMPRAS REALIZADAS -->
+      @if (subVistaPedidos === 'compras') {
+        @if (!usuarioAutenticado) {
+          <div class="empty-state-box">
+            <p>Inicia sesión para consultar el historial de tus pedidos.</p>
+            <button class="btn-primary" (click)="cambiarVista('login')">INICIAR SESIÓN →</button>
+          </div>
+        } @else if (misPedidos.length === 0) {
+          <div class="empty-state-box">
+            <p>Aún no has realizado ninguna compra en Urban-Vibe.</p>
+            <button class="btn-primary" (click)="cambiarVista('catalogo')">EXPLORAR PRENDAS →</button>
+          </div>
+        } @else {
+          @for (ped of misPedidos; track ped.id || ped.fecha) {
+            <div class="order-card">
+              <div class="order-header">
+                <span class="order-date">📅 {{ ped.fecha }}</span>
+                <span class="order-status">{{ ped.estado }}</span>
+              </div>
+              <p class="order-address">📍 Entrega: {{ ped.direccion }}</p>
+
+              <div class="order-items-list">
+                @for (item of ped.items; track item.producto.nombre + item.tallaSeleccionada) {
+                  <div class="order-item-row">
+                    <span>{{ item.cantidad }}x {{ item.producto.nombre }} <strong>({{ item.tallaSeleccionada }})</strong></span>
+                    <span>${{ (item.producto.precio * item.cantidad) | number:'1.2-2' }}</span>
+                  </div>
+                }
+              </div>
+
+              <div class="order-footer">
+                <span>TOTAL PAGADO</span>
+                <span class="order-total">${{ ped.total | number:'1.2-2' }} USD</span>
+              </div>
+            </div>
+          }
+        }
+      }
+
+      <!-- SUB-VISTA 2: PRENDAS FAVORITAS -->
+      @if (subVistaPedidos === 'favoritos') {
+        @if (favoritos.length === 0) {
+          <div class="empty-state-box">
+            <p>Todavía no tienes prendas favoritas. Toca el ícono 🤍 en cualquier prenda para guardarla aquí.</p>
+            <button class="btn-primary" (click)="cambiarVista('catalogo')">IR AL CATÁLOGO →</button>
+          </div>
+        } @else {
+          <div class="product-grid" style="padding: 10px 0;">
+            @for (fav of favoritos; track fav.id || fav.nombre) {
+              <div class="product-card" (click)="abrirModalProducto(fav)">
+                <div class="image-wrapper">
+                  @if (fav.descuentoBadge) {
+                    <span class="discount-badge">{{ fav.descuentoBadge }}</span>
+                  }
+                  <img [src]="fav.imagenUrl" [alt]="fav.nombre">
+                  <button type="button" class="fav-btn" (click)="toggleFavorito(fav, $event)">❤️</button>
+                </div>
+                <div class="product-info">
+                  <span class="category-tag">{{ fav.categoria | uppercase }} · {{ fav.estilo || 'URBAN' }}</span>
+                  <h3>{{ fav.nombre }}</h3>
+                  <p class="subtext">{{ fav.subtitulo }}</p>
+                  <div class="price-row">
+                    <span class="price">${{ fav.precio | number:'1.2-2' }}</span>
+                  </div>
+                  <button class="btn-add" (click)="agregarAlCarritoDirecto(fav, $event)">« AGREGAR »</button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      }
+    </section>
   }
 
   <!-- MODAL FLOTANTE DE DETALLE DE PRENDA -->
@@ -201,13 +307,16 @@
             </div>
 
             <button class="btn-primary" (click)="agregarModalAlCarrito()">AÑADIR AL CARRITO →</button>
+            <button type="button" class="btn-secondary" style="margin-top: 8px;" (click)="toggleFavorito(productoSeleccionado)">
+              {{ esFavorito(productoSeleccionado) ? '❤️ GUARDADO EN FAVORITOS' : '🤍 GUARDAR EN FAVORITOS' }}
+            </button>
           </div>
         </div>
 
         <!-- RECOMENDACIONES -->
         <div class="cross-selling-section">
           <h3>COMPLETA TU LOOK (RECOMENDADOS DE {{ productoSeleccionado.categoria | uppercase }})</h3>
-          @if (obtenerSugerencias(productoSeleccionado) | async; as sugerencias) {
+          @if (obtenerSugerencias(productoSeleccionado); as sugerencias) {
             <div class="suggestions-grid">
               @for (sug of sugerencias.slice(0, 3); track sug.id || sug.nombre) {
                 <div class="suggestion-card" (click)="abrirModalProducto(sug)">
@@ -256,8 +365,6 @@
           <select [(ngModel)]="nuevoProducto.estilo">
             <option value="Oversize">Oversize</option>
             <option value="Run">Run</option>
-            <option value="Casual">Casual</option>
-            <option value="Elegante">Elegante</option>
           </select>
         </div>
         <div class="form-group">
@@ -441,9 +548,9 @@
       <div class="modal-content success-checkout-modal">
         <div class="success-icon">🎉</div>
         <h2>¡COMPRA CONFIRMADA!</h2>
-        <p class="subtitle">Tu pedido ha sido procesado con éxito.</p>
-        <p class="success-detail">En breve recibirás un correo con los detalles de seguimiento de tu paquete.</p>
-        <button class="btn-primary" (click)="cerrarModalExito()">VOLVER AL INICIO</button>
+        <p class="subtitle">Tu pedido ha sido registrado en Mis Pedidos.</p>
+        <p class="success-detail">En breve recibirás los detalles de seguimiento de tu paquete.</p>
+        <button class="btn-primary" (click)="cerrarModalExito()">VER MIS PEDIDOS</button>
       </div>
     </div>
   }
@@ -451,7 +558,7 @@
   <!-- BARRA DE NAVEGACIÓN INFERIOR -->
   <nav class="bottom-nav">
     <button (click)="cambiarVista('catalogo')">🏠<br>INICIO</button>
-    <button (click)="cambiarVista('catalogo')">🔲<br>CATÁLOGO</button>
+    <button (click)="cambiarVista('pedidos')">📦<br>MIS PEDIDOS</button>
     <button (click)="cambiarVista('carrito')">🛒<br>CARRITO</button>
     <button (click)="cambiarVista('login')">👤<br>MI CUENTA</button>
   </nav>

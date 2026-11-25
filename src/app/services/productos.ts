@@ -2,20 +2,19 @@ import { Injectable, inject } from '@angular/core';
 import {
   Firestore,
   collection,
-  collectionData,
+  getDocs,
   addDoc,
   doc,
   updateDoc,
   deleteDoc
 } from '@angular/fire/firestore';
-import { Observable } from 'rxjs';
 
 export interface Producto {
   id?: string;
   nombre: string;
   subtitulo: string;
   categoria: 'Hombre' | 'Mujer';
-  estilo?: 'Oversize' | 'Run' | 'Casual' | 'Elegante' | 'Regular Fit';
+  estilo?: 'Oversize' | 'Run';
   precio: number;
   precioOriginal?: number;
   descuentoBadge?: string;
@@ -30,32 +29,64 @@ export interface ItemCarrito {
   cantidad: number;
 }
 
+export interface Pedido {
+  id?: string;
+  correoUsuario: string;
+  nombreDestinatario: string;
+  direccion: string;
+  telefono: string;
+  items: ItemCarrito[];
+  total: number;
+  fecha: string;
+  estado: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class ProductosService {
   private firestore = inject(Firestore);
-  private productosRef = collection(this.firestore, 'productos');
 
-  // 1. Obtener prendas en tiempo real desde la base de datos de Firebase
-  listar(): Observable<Producto[]> {
-    return collectionData(this.productosRef, { idField: 'id' }) as Observable<Producto[]>;
+  async obtenerTodos(): Promise<Producto[]> {
+    const colRef = collection(this.firestore, 'productos');
+    const snapshot = await getDocs(colRef);
+    return snapshot.docs.map(d => ({
+      id: d.id,
+      ...(d.data() as Producto)
+    }));
   }
 
-  // 2. Guardar prenda directamente en Firebase (se verá en todas las PCs)
-  agregar(producto: Producto): Promise<any> {
-    return addDoc(this.productosRef, producto);
+  async agregar(producto: Producto): Promise<any> {
+    const colRef = collection(this.firestore, 'productos');
+    const limpio = JSON.parse(JSON.stringify(producto));
+    return addDoc(colRef, limpio);
   }
 
-  // 3. Editar prenda en la base de datos central
-  editar(id: string, producto: Partial<Producto>): Promise<void> {
+  async editar(id: string, producto: Partial<Producto>): Promise<void> {
     const docRef = doc(this.firestore, `productos/${id}`);
-    return updateDoc(docRef, producto);
+    const limpio = JSON.parse(JSON.stringify(producto));
+    return updateDoc(docRef, limpio);
   }
 
-  // 4. Eliminar prenda en la base de datos central
-  eliminar(id: string): Promise<void> {
+  async eliminar(id: string): Promise<void> {
     const docRef = doc(this.firestore, `productos/${id}`);
     return deleteDoc(docRef);
+  }
+
+  async guardarPedido(pedido: Pedido): Promise<any> {
+    const colRef = collection(this.firestore, 'pedidos');
+    const limpio = JSON.parse(JSON.stringify(pedido));
+    return addDoc(colRef, limpio);
+  }
+
+  async obtenerPedidosPorUsuario(correo: string): Promise<Pedido[]> {
+    const colRef = collection(this.firestore, 'pedidos');
+    const snapshot = await getDocs(colRef);
+    return snapshot.docs
+      .map(d => ({
+        id: d.id,
+        ...(d.data() as Pedido)
+      }))
+      .filter(p => p.correoUsuario?.toLowerCase() === correo.toLowerCase());
   }
 }
